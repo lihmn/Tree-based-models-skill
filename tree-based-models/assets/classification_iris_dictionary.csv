@@ -1,0 +1,7 @@
+﻿欄位,說明,單位,角色
+__dataset__,"鳶尾花資料集（Fisher, 1936）：150 朵鳶尾花，3 個品種各 50 朵；依花萼與花瓣的長、寬（公分）預測花的品種。",—,資料集
+sepal_length_cm,花萼長度,公分,特徵
+sepal_width_cm,花萼寬度,公分,特徵
+petal_length_cm,花瓣長度,公分,特徵
+petal_width_cm,花瓣寬度,公分,特徵
+species,鳶尾花品種（預測目標）：setosa（山鳶尾）/ versicolor（變色鳶尾）/ virginica（維吉尼亞鳶尾）,—,目標
