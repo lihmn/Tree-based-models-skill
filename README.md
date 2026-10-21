@@ -94,7 +94,7 @@ make_demo_data.py ──► assets/*.csv
    eda_regression_house_price/、eda_classification_iris/
 ```
 
-`demo_tree_models.py` 為獨立的教學程式，不在主流程內。
+`demo_tree_models.py` 為獨立的程式，不在主流程內。
 
 ## 安裝與使用
 
