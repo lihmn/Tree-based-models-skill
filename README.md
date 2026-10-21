@@ -67,6 +67,35 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
 - **`materials/`**：完整說明報告，介紹方法、流程、檔案用途與示範結果；`.qmd` 可用 Quarto 重新產生 `.html`。
 - **乳癌診斷相關檔案**：以 Skill 從未用過、且未附欄位說明檔的資料實測，驗證流程可套用到新資料。
 
+## 程式說明與執行流程
+
+主程式為 **`eda_pipeline.py`**，完整分析流程都在此執行；另外兩支為輔助程式。
+
+| 程式 | 用途 | 輸入 | 輸出 |
+|---|---|---|---|
+| `make_demo_data.py` | 產生兩筆 demo 資料（房價刻意放入 MCAR / MAR / MNAR 遺失） | 無（固定亂數種子） | `assets/` 的資料與欄位說明檔 |
+| **`eda_pipeline.py`** | 主程式：EDA、遺失值處理、樹模型建模與報告輸出 | 任何表格 CSV + `--target` | `eda_<檔名>/` 資料夾 |
+| `demo_tree_models.py` | 教學用：示範過擬合、淺樹規則、OOB、MDI vs 置換重要度、early stopping | 分類 CSV | 主控台文字輸出 |
+
+```
+make_demo_data.py ──► assets/*.csv
+                          │
+                          ▼
+              eda_pipeline.py --target Y
+   1. 讀檔、判斷分類／迴歸、資料與變數介紹
+   2. 敘述性統計
+   3. 遺失值檢查（無遺失則跳過；有則診斷機制）
+   4. 資料切分（25% 測試集 + 訓練集 5 折 CV）
+   5. 插補方法比較（僅在有遺失時）
+   6. DT / RF / GB 以 GridSearchCV 調參與比較
+   7. 輸出 report.html、descriptive_stats.xlsx、figures/、report.txt、summary.json
+                          │
+                          ▼
+   eda_regression_house_price/、eda_classification_iris/
+```
+
+`demo_tree_models.py` 為獨立的教學程式，不在主流程內。
+
 ## 安裝與使用
 
 ### 作為 Claude Skill
