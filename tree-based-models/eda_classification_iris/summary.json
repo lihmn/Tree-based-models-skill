@@ -1,0 +1,30 @@
+{
+  "csv": "assets/classification_iris.csv",
+  "task": "classification",
+  "target": "species",
+  "rows": 150,
+  "num_cols": [
+    "sepal_length_cm",
+    "sepal_width_cm",
+    "petal_length_cm",
+    "petal_width_cm"
+  ],
+  "cat_cols": [],
+  "dropped": [],
+  "missing_cols": [],
+  "complete_row_ratio": 1.0,
+  "little_mcar": null,
+  "mechanisms": {},
+  "has_missing": false,
+  "best_imputer": "無（資料無遺失）",
+  "best_model": "Random Forest",
+  "best_model_metrics": {
+    "插補": "無",
+    "CV Accuracy": 0.9644,
+    "CV Accuracy 標準差": 0.0328,
+    "訓練 Accuracy": 1.0,
+    "測試 Accuracy": 0.8947,
+    "測試 Macro-F1": 0.8968,
+    "測試 AUC(ovr)": 0.9887
+  }
+}

@@ -1,0 +1,71 @@
+=== 1. 資料與變數介紹: assets/classification_iris.csv ===
+150 列 × 5 欄；欄位說明檔: classification_iris_dictionary.csv
+             欄位                                                           說明 單位 角色   變數型態   dtype  遺失數
+sepal_length_cm                                                         花萼長度 公分 特徵     數值 float64    0
+ sepal_width_cm                                                         花萼寬度 公分 特徵     數值 float64    0
+petal_length_cm                                                         花瓣長度 公分 特徵     數值 float64    0
+ petal_width_cm                                                         花瓣寬度 公分 特徵     數值 float64    0
+        species 鳶尾花品種（預測目標）：setosa（山鳶尾）/ versicolor（變色鳶尾）/ virginica（維吉尼亞鳶尾）  — 目標 類別（標籤）     str    0
+
+=== 2. 任務類型判斷 ===
+  檢查項目                            結果
+  目標欄位                       species
+ dtype                           str
+ 是否為數值                             否
+是否全為整數                             否
+ 不同值個數                             3
+ 不同值佔比                         2.00%
+   範例值 setosa, versicolor, virginica
+    判斷                 分類：多類別分類（3 類）
+→ 分類（多類別分類（3 類））：目標是文字／布林值，代表「類別」而非數量
+
+=== 3. 敘述性統計 ===
+                  個數  遺失%    平均數    標準差  最小值   Q1   中位數   Q3  最大值  IQR  變異係數CV     偏態  峰態(超額)  離群值數(1.5IQR)
+欄位                                                                                                         
+sepal_length_cm  150  0.0  5.843  0.828  4.3  5.1  5.80  6.4  7.9  1.3   0.142  0.312  -0.574             0
+sepal_width_cm   150  0.0  3.057  0.436  2.0  2.8  3.00  3.3  4.4  0.5   0.143  0.316   0.181             4
+petal_length_cm  150  0.0  3.758  1.765  1.0  1.6  4.35  5.1  6.9  3.5   0.470 -0.272  -1.396             0
+petal_width_cm   150  0.0  1.199  0.762  0.1  0.3  1.30  1.8  2.5  1.5   0.636 -0.102  -1.336             0
+     欄位  個數  遺失%  類別數     眾數  眾數佔比%      最少類別  最少類別佔比%
+species 150  0.0    3 setosa  33.33 virginica    33.33
+
+=== 4. 遺失值檢查 ===
+     項目               結果
+  特徵欄位數                4
+   資料筆數              150
+    總格數              600
+   遺失格數         0（0.00%）
+有遺失的欄位數                0
+  完整列比例           100.0%
+     判斷 無遺失 → 跳過遺失值診斷與處理
+完整列（所有特徵都沒有遺失）: 150/150（100.0%）
+
+=== 5. 資料切分 ===
+        類別  全部筆數  訓練筆數  測試筆數  訓練佔該類%  測試佔該類%  訓練集內佔比%  測試集內佔比%
+    setosa    50    38    12    76.0    24.0     33.9     31.6
+versicolor    50    37    13    74.0    26.0     33.0     34.2
+ virginica    50    37    13    74.0    26.0     33.0     34.2
+        合計   150   112    38    74.7    25.3    100.0    100.0
+ 折  訓練筆數  驗證筆數  驗證折 setosa 筆數  驗證折 versicolor 筆數  驗證折 virginica 筆數
+ 1    89    23              8                  7                 8
+ 2    89    23              8                  7                 8
+ 3    90    22              7                  8                 7
+ 4    90    22              7                  8                 7
+ 5    90    22              8                  7                 7
+
+=== 6. 遺失值處理：資料無遺失，略過 ===
+
+=== 7. 模型比較（插補 = 無（資料無遺失）） ===
+  Decision Tree            CV Accuracy 0.9553±0.0398｜GridSearchCV（5 折 CV，24 組 × 5 折 = 120 次訓練）｜最佳參數 max_depth=3、min_samples_leaf=1
+  Random Forest            CV Accuracy 0.9644±0.0328｜GridSearchCV（5 折 CV，9 組 × 5 折 = 45 次訓練）｜最佳參數 max_features=sqrt、min_samples_leaf=1
+  Gradient Boosting        CV Accuracy 0.9557±0.0275｜GridSearchCV（5 折 CV，12 組 × 5 折 = 60 次訓練）｜最佳參數 learning_rate=0.05、max_depth=2、n_estimators=100
+               模型                                            最佳參數                                            固定參數
+    Decision Tree                  max_depth=3、min_samples_leaf=1                  criterion=gini、random_state=42
+    Random Forest            max_features=sqrt、min_samples_leaf=1 n_estimators=300、bootstrap=True、random_state=42
+Gradient Boosting learning_rate=0.05、max_depth=2、n_estimators=100                   subsample=0.8、random_state=42
+               模型  CV Accuracy  CV Accuracy 標準差  訓練 Accuracy  測試 Accuracy  測試 Macro-F1  測試 AUC(ovr)
+    Decision Tree       0.9553           0.0398       0.9643       0.8947       0.8968       0.9774
+    Random Forest       0.9644           0.0328       1.0000       0.8947       0.8968       0.9887
+Gradient Boosting       0.9557           0.0275       1.0000       0.9211       0.9230       0.9918
+
+總耗時 48.4 秒

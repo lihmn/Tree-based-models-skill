@@ -1,0 +1,54 @@
+{
+  "csv": "assets/regression_house_price.csv",
+  "task": "regression",
+  "target": "price_wan",
+  "rows": 2500,
+  "num_cols": [
+    "area_sqm",
+    "bedrooms",
+    "bathrooms",
+    "house_age",
+    "floor",
+    "total_floors",
+    "dist_center_km",
+    "dist_mrt_km",
+    "parking_spaces",
+    "mgmt_fee"
+  ],
+  "cat_cols": [],
+  "dropped": [
+    "listing_id"
+  ],
+  "missing_cols": [
+    "mgmt_fee",
+    "house_age",
+    "dist_mrt_km",
+    "floor"
+  ],
+  "complete_row_ratio": 0.6488,
+  "little_mcar": {
+    "chi2": 695.36,
+    "df": 98,
+    "p": 8.95461618951013e-91,
+    "patterns": 13
+  },
+  "mechanisms": {
+    "mgmt_fee": "MAR（或 MNAR）",
+    "house_age": "MAR（或 MNAR）",
+    "dist_mrt_km": "MAR（或 MNAR）",
+    "floor": "符合 MCAR"
+  },
+  "has_missing": true,
+  "best_imputer": "中位數",
+  "best_model": "Gradient Boosting",
+  "best_model_metrics": {
+    "插補": "中位數",
+    "CV RMSE": 194.8549,
+    "CV RMSE 標準差": 8.8623,
+    "訓練 RMSE": 124.231,
+    "測試 RMSE": 190.6852,
+    "測試 MAE": 141.1298,
+    "測試 R²": 0.894,
+    "測試 MAPE%": 11.9682
+  }
+}
