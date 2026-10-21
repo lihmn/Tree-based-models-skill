@@ -73,8 +73,8 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
 
 | 程式 | 用途 | 輸入 | 輸出 |
 |---|---|---|---|
-| `make_demo_data.py` | 產生兩筆 demo 資料（房價刻意放入 MCAR / MAR / MNAR 遺失） | 無（固定亂數種子） | `assets/` 的資料與欄位說明檔 |
 | **`eda_pipeline.py`** | 主程式：EDA、遺失值處理、樹模型建模與報告輸出 | 任何表格 CSV + `--target` | `eda_<檔名>/` 資料夾 |
+| `make_demo_data.py` | 產生兩筆 demo 資料（房價刻意放入 MCAR / MAR / MNAR 遺失） | 無（固定亂數種子） | `assets/` 的資料與欄位說明檔 |
 | `demo_tree_models.py` | 教學用：示範過擬合、淺樹規則、OOB、MDI vs 置換重要度、early stopping | 分類 CSV | 主控台文字輸出 |
 
 ```
