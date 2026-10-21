@@ -37,11 +37,23 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
 │   │   ├── eda-missing-data-guide.md        # 建模前流程教學與 demo 結果
 │   │   ├── tree-based-models-guide.md       # 三個樹模型的原理與實務
 │   │   └── *.txt                            # 腳本實際輸出紀錄
-│   └── assets/
-│       ├── regression_house_price.csv            # 迴歸 demo（模擬房價，有遺失）
-│       ├── regression_house_price_dictionary.csv
-│       ├── classification_iris.csv               # 分類 demo（鳶尾花，無遺失）
-│       └── classification_iris_dictionary.csv
+│   ├── assets/
+│   │   ├── regression_house_price.csv            # 迴歸 demo（模擬房價，有遺失）
+│   │   ├── regression_house_price_dictionary.csv
+│   │   ├── classification_iris.csv               # 分類 demo（鳶尾花，無遺失）
+│   │   └── classification_iris_dictionary.csv
+│   ├── eda_regression_house_price/      # 房價 demo 的分析輸出
+│   │   ├── report.html                  #   圖文報告
+│   │   ├── descriptive_stats.xlsx       #   統計表
+│   │   ├── figures/                     #   圖檔
+│   │   ├── report.txt                   #   主控台輸出
+│   │   └── summary.json                 #   關鍵數字
+│   └── eda_classification_iris/         # 鳶尾花 demo 的分析輸出
+│       ├── report.html                  #   圖文報告
+│       ├── descriptive_stats.xlsx       #   統計表
+│       ├── figures/                     #   圖檔
+│       ├── report.txt                   #   主控台輸出
+│       └── summary.json                 #   關鍵數字
 ├── materials/                               # Skill 說明報告
 │   ├── tree_based_models_skill_report.qmd   # 報告原始檔（Quarto）
 │   ├── tree_based_models_skill_report.html  # 報告輸出（可直接以瀏覽器開啟）
