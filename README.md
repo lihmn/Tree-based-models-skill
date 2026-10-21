@@ -27,6 +27,7 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
 
 ```
 ├── README.md
+├── requirements.txt                         # 套件版本（重現示範結果用）
 ├── tree-based-models/                       # Skill 本體（安裝時使用此資料夾）
 │   ├── SKILL.md                             # Skill 主說明（Claude 讀取的入口）
 │   ├── scripts/
@@ -106,7 +107,11 @@ make_demo_data.py ──► assets/*.csv
 
 ```bash
 # 安裝套件
-pip install scikit-learn pandas numpy scipy matplotlib openpyxl
+# pip install scikit-learn pandas numpy scipy matplotlib openpyxl
+
+# 安裝套件（Python 3.11，版本與示範結果相同）
+pip install -r requirements.txt
+cd tree-based-models
 
 # 執行 demo
 python scripts/eda_pipeline.py assets/regression_house_price.csv --target price_wan
@@ -115,6 +120,7 @@ python scripts/eda_pipeline.py assets/classification_iris.csv --target species
 # 分析自己的資料
 python scripts/eda_pipeline.py my_data.csv --target y --dict my_data_dictionary.csv --out eda_my_data
 ```
+> **可重現性**：所有隨機步驟皆固定 `random_state=42`。使用 `requirements.txt` 的套件版本、相同資料與參數執行，可得到與示範相同的結果（僅執行時間與報告產生時間不同）。
 
 | 參數 | 說明 |
 |---|---|
