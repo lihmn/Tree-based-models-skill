@@ -1,0 +1,454 @@
+---
+title: "Supervised Learning - Tree-Based Models Skill"
+subtitle: "從資料與變數介紹、遺失值處理到樹模型監督式學習的完整流程"
+author: "李慧敏"
+date: "2026-11-06"
+lang: zh-TW
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: 目錄
+    number-sections: true
+    code-copy: true
+    embed-resources: true
+    fig-align: center
+    theme: cosmo
+---
+
+# 摘要 {.unnumbered}
+
+本報告說明 `tree-based-models` Claude Skill 的方法與流程、檔案用途、使用方式與協作過程。Skill 針對表格型資料的監督式學習流程如下：
+
+1. **資料與變數介紹**：資料是什麼、要預測什麼、用哪些變數。
+2. **判斷任務類型**：分類或迴歸。
+3. **敘述性統計**：統計量、分佈圖、與目標的關係、相關性。
+4. **遺失值檢查**：沒有遺失就跳過；有遺失才診斷機制。
+5. **資料切分**：測試集保留到最後，訓練集做 5 折交叉驗證。
+6. **遺失值處理**：只在有遺失時比較 7 種插補方法。
+7. **模型訓練與比較**：Decision Tree、Random Forest、Gradient Boosting，各自以 GridSearchCV 調參。
+
+流程由 `eda_pipeline.py` 執行，輸出 HTML 報告、Excel 統計表與圖檔。另附迴歸（房價）、分類（鳶尾花）示範資料各一筆，以及一筆從未用過的資料（乳癌診斷）實測。
+
+# Skill 總覽
+
+Skill 將正確的分析順序寫成固定流程，讓每次分析都依同一套標準完成並產出報告。
+
+```{mermaid}
+%%| label: fig-flow
+%%| fig-cap: "Skill 分析流程。"
+%%| fig-width: 12
+%%{init: {
+  'theme': 'default',
+  'themeVariables': { 'fontSize': '20px' },
+  'flowchart': { 'useMaxWidth': false, 'nodeSpacing': 50, 'rankSpacing': 60, 'padding': 20 }
+}}%%
+flowchart LR
+  A[資料與變數介紹] --> B[判斷任務類型<br/>分類 or 迴歸]
+  B --> C[敘述性統計]
+  C --> D{遺失值檢查}
+  D -- 無遺失 --> E[資料切分]
+  D -- 有遺失 --> F[遺失機制診斷] --> E
+  E --> G{有遺失?}
+  G -- 是 --> H[插補方法比較<br/>只用訓練集 CV]
+  G -- 否 --> I
+  H --> I[模型訓練與比較<br/>DT / RF / GB + GridSearchCV]
+```
+
+| 步驟 | 做什麼 | 產出 |
+|------|-----------|-----------|
+| 1. 資料與變數介紹 | 資料說明、預測目標、使用變數；ID 欄位自動排除 | 變數介紹表 |
+| 2. 判斷任務類型 | 依目標欄位的型態與取值判斷分類／迴歸 | 判斷依據表、目標分佈圖 |
+| 3. 敘述性統計 | 統計量、分佈、與目標的關係、相關性 | 統計表、直方圖／長條圖、箱形圖、相關熱圖 |
+| 4. 遺失值檢查 | 有遺失才算行／列遺失比例並診斷機制 | 遺失矩陣、遺失比例圖、機制診斷表 |
+| 5. 資料切分 | 25% 測試集 + 訓練集 5 折 CV；分類 stratify | 切分示意圖、各類別訓練／測試筆數 |
+| 6. 插補比較 | 7 種方法以同一模型、同一組 CV 折比較 | 下游 CV 比較圖、遮罩還原 NRMSE |
+| 7. 模型訓練與比較 | 三個樹模型各自 GridSearchCV，測試集評估一次 | 調參表、模型比較、混淆矩陣／殘差圖、置換重要度 |
+
+# 採用的方法
+
+## 資料與變數介紹
+
+報告開頭說明資料來源與筆數、要預測的目標（分類列各類別筆數，迴歸列單位、平均與範圍），以及每個特徵的說明與單位。說明文字來自欄位說明檔；ID 欄位會自動排除。
+
+## 判斷分類或迴歸
+
+任務類型決定模型、評估指標與切分方式，所以最先確定：
+
+```
+目標是文字 / 布林？            ──► 分類
+數值但只有 2 種值（0/1）？      ──► 二元分類
+整數且 ≤ 10 種值？             ──► 多類別分類
+其餘（小數、很多不同值）        ──► 迴歸
+```
+
+| | 二元分類 | 多類別分類 | 迴歸 |
+|---|---|---|---|
+| sklearn 模型 | `*Classifier` | `*Classifier` | `*Regressor` |
+| 分裂準則 | Gini / Entropy | Gini / Entropy | 平方誤差 |
+| 調參與選模型指標 | AUC | Accuracy | RMSE |
+| 其他報告指標 | PR-AUC、F1、ROC | Macro-F1、混淆矩陣 | MAE、R²、MAPE |
+| 切分 | `StratifiedKFold` | `StratifiedKFold` | `KFold` |
+
+: 不同任務類型對應的模型、指標與切分方式 {#tbl-task}
+
+## 敘述性統計
+
+- **數值欄位**：平均數、標準差、四分位數、IQR、偏態、峰態、變異係數、1.5×IQR 離群值數。
+- **類別欄位**：類別數、眾數與佔比、各水準次數。
+- **與目標的關係**：以效果量列出最強的幾個特徵並畫圖。
+- **相關性**：Spearman 相關熱圖；|ρ| > 0.8 的特徵對會特別指出。
+
+## 遺失值：先檢查，有才處理
+
+```python
+miss = X.isna().sum()
+print(miss[miss > 0], "完整列比例:", X.notna().all(axis=1).mean())
+```
+
+沒有遺失時，報告寫明「無遺失，跳過」並直接建模；有遺失時依序：
+
+1. **遺失比例**：行（欄位）遺失比例 = 該欄遺失筆數 ÷ 總筆數；列（資料筆）遺失比例看每筆缺幾個欄位，可知整列刪除會丟多少資料。
+2. **機制診斷**（Rubin, 1976）：Little's MCAR 檢定，並逐欄比較「遺失 vs 未遺失」兩組的其他變數，推測 MCAR、MAR（或 MNAR）。MNAR 無法單靠資料證明，需領域知識判斷。
+3. **插補比較**（只用訓練集）：整列刪除、中位數、平均數、中位數＋遺失指標、KNN、MICE（貝氏迴歸）、MICE（ExtraTrees），以同一個 Gradient Boosting、同一組 5 折 CV 比較下游分數。
+
+## 資料切分
+
+```
+全部資料 ──► 測試集 25%
+         └─► 訓練集 75% ──► 5 折交叉驗證（插補法、參數、最佳模型）
+```
+
+```python
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, random_state=42,
+                                          stratify=y if is_clf else None)
+cv = StratifiedKFold(5, shuffle=True, random_state=42) if is_clf else KFold(5, shuffle=True, random_state=42)
+```
+
+插補與編碼都放進 Pipeline，每一折只用訓練折 fit，避免資料洩漏；測試集只在最後評估一次。
+
+## 模型與調參
+
+| 模型 | GridSearchCV 搜尋的參數 | 固定參數 |
+|-----|--------|------|
+| Decision Tree | `max_depth`、`min_samples_leaf` | criterion（gini / squared_error） |
+| Random Forest | `max_features`、`min_samples_leaf` | n_estimators=300 |
+| Gradient Boosting | `n_estimators`、`learning_rate`、`max_depth` | subsample=0.8 |
+
+: 三個樹模型的調參設定 {#tbl-models}
+
+```python
+pipe = Pipeline([("imp", SimpleImputer(strategy="median")),
+                 ("m", GradientBoostingRegressor(subsample=0.8, random_state=42))])
+grid = {"m__n_estimators": [200, 400], "m__learning_rate": [0.05, 0.1], "m__max_depth": [3, 4, 5]}
+gs = GridSearchCV(pipe, grid, cv=cv, scoring="neg_root_mean_squared_error").fit(X_tr, y_tr)
+print(gs.best_params_, -gs.best_score_)          # 最佳參數與 CV RMSE；測試集只評估一次
+```
+
+
+# 樹模型架構與對應程式
+
+```{mermaid}
+%%| label: fig-tree-arch
+%%| fig-cap: "三個樹模型的關係：Random Forest 並行降變異數，Gradient Boosting 序列降偏差。"
+flowchart LR
+  DT[Decision Tree<br/>單棵樹・可解釋・高變異數]
+  DT -- 並行・降變異數 --> RF[Random Forest<br/>Bootstrap + 特徵抽樣<br/>多棵深樹平均／投票]
+  DT -- 序列・降偏差 --> GB[Gradient Boosting<br/>多棵淺樹<br/>依序擬合負梯度]
+```
+
+| 面向 | Decision Tree | Random Forest | Gradient Boosting |
+|---|---|---|---|
+| 訓練方式 | 單棵 | 多棵獨立、並行 | 多棵依序修正 |
+| 單棵樹 | 深或淺 | 深 | 淺（深度 2–5） |
+| 主要降低 | — | 變異數 | 偏差 |
+| 過擬合來源 | 樹太深 | 低（加樹不會變差） | 樹太多、學習率太大 |
+| 可解釋性 | 最高 | 低 | 低 |
+
+: 三個樹模型的架構比較 {#tbl-arch}
+
+## Decision Tree
+
+每個節點遍歷「特徵 × 切點」，貪婪地選出讓不純度下降最多的切分（Breiman et al., 1984）；葉節點輸出類別比例（分類）或平均（迴歸）。
+
+$$
+\text{Gain} = \text{Impurity(parent)} - \left[\frac{n_L}{n}\,\text{Impurity(left)} + \frac{n_R}{n}\,\text{Impurity(right)}\right], \qquad
+\text{Gini} = 1 - \sum_k p_k^2
+$$
+
+迴歸的不純度 $I$ 為節點內 $y$ 的變異數。不限深度的樹會背下訓練資料（鳶尾花：訓練 Accuracy 1.000、CV 0.938；限深度 3 時 CV 升到 0.955），因此以 `max_depth`、`min_samples_leaf` 控制。
+
+```python
+from sklearn.tree import DecisionTreeClassifier, export_text
+
+tree = DecisionTreeClassifier(max_depth=3, random_state=42).fit(X_train, y_train)
+print(export_text(tree, feature_names=list(X_train.columns))) 
+```
+
+## Random Forest
+
+以 bootstrap（有放回抽樣）訓練多棵深樹，且每次分裂只從隨機抽出的 `max_features` 個特徵找切點，最後平均或投票（Breiman, 2001）。$B$ 棵樹、單棵變異數 $\sigma^2$、樹之間相關 $\rho$ 時：
+
+$$
+\operatorname{Var}(\text{平均}) = \rho\,\sigma^2 + \frac{(1-\rho)\,\sigma^2}{B}
+$$
+
+增加樹只能消掉第二項，特徵抽樣降低 $\rho$ 才能進一步降變異數。
+
+特徵重要度方面，impurity 重要度偏好連續或高基數特徵，對純雜訊也會給分（Strobl et al., 2007），因此改用測試集上的**置換重要度**：打亂某欄後看指標掉多少。
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+
+rf = RandomForestClassifier(n_estimators=300, max_features="sqrt", oob_score=True,
+                            n_jobs=-1, random_state=42).fit(X_train, y_train)
+print("OOB acc:", rf.oob_score_)
+perm = permutation_importance(rf, X_test, y_test, n_repeats=20, random_state=42)
+```
+
+## Gradient Boosting
+
+加法模型，每一輪加入一棵淺樹 $h_m$ 擬合目前模型的負梯度，再以學習率 $\eta$ 縮放（Friedman, 2001）：
+
+$$
+F_m(x) = F_{m-1}(x) + \eta\, h_m(x), \qquad
+r_i = -\left.\frac{\partial L\big(y_i, F(x_i)\big)}{\partial F(x_i)}\right|_{F = F_{m-1}}
+$$
+
+- **左式（逐步累加）**：$F_{m-1}$ 為前 $m-1$ 棵樹累加的預測，第 $m$ 棵淺樹 $h_m$ 負責修正剩下的誤差；學習率 $\eta$（0–1）讓每次只修正一小步，避免一次修過頭。
+- **右式（新樹要學什麼）**：$r_i$ 為損失 $L$ 對目前預測的負梯度，代表第 $i$ 筆樣本「往哪個方向、修正多少」能讓損失變小；新樹 $h_m$ 即以 $r_i$ 為目標來訓練。
+
+| 任務 | 損失 $L$ | 負梯度 $r_i$ | 直覺 |
+|---|---|---|---|
+| 迴歸 | $\tfrac{1}{2}(y-F)^2$ | $y - F$ | 殘差：目前還差多少 |
+| 二元分類 | log loss，$p = \sigma(F)$ | $y - p$ | 真實標籤（0/1）與預測機率的差距 |
+| 多類別（K 類） | 多項 log loss | $y_k - p_k$ | 每輪建 K 棵樹，第 $k$ 棵修正第 $k$ 類的機率 |
+
+: Gradient Boosting 的損失與負梯度 {#tbl-gb-loss}
+
+與 Random Forest 不同，**樹太多會過擬合**，所以 `n_estimators` 要和 `learning_rate` 一起調。
+
+```python
+from sklearn.ensemble import GradientBoostingClassifier
+
+gb = GradientBoostingClassifier(n_estimators=2000, learning_rate=0.03, max_depth=2, subsample=0.8,
+                                validation_fraction=0.2, n_iter_no_change=50, random_state=42)
+gb.fit(X_train_imputed, y_train)         
+print("實際樹數:", gb.n_estimators_)
+```
+
+# 檔案說明
+
+```
+tree-based-models/
+├── SKILL.md                          # Skill 主說明（Claude 讀取的入口）
+├── scripts/
+│   ├── eda_pipeline.py               # 主程式：完整流程 + 報表輸出
+│   ├── demo_tree_models.py           # 教學用：樹模型行為 demo
+│   └── make_demo_data.py             # 產生兩筆 demo 資料與欄位說明檔
+├── references/
+│   ├── eda-missing-data-guide.md     # 建模前流程教學 + demo 完整結果
+│   ├── tree-based-models-guide.md    # 三個樹模型的原理與實務
+│   └── *.txt                         # 腳本實際執行的輸出紀錄（核對數字用）
+├── assets/                           # 兩筆 demo 資料與欄位說明檔
+├── eda_regression_house_price/       # 房價 demo 的分析輸出
+└── eda_classification_iris/          # 鳶尾花 demo 的分析輸出
+```
+
+| | 迴歸：`regression_house_price.csv` | 分類：`classification_iris.csv` |
+|----|------------|------------|
+| 要預測什麼 | 成交總價 `price_wan`（萬元） | 鳶尾花品種 `species`（3 類，各 50） |
+| 筆數／特徵 | 2,500 筆；10 個數值特徵 | 150 筆；4 個數值特徵 |
+| 遺失值 | 有| 無 |
+| 來源 | 模擬資料（`make_demo_data.py`，seed = 11） | Fisher (1936)，取自 scikit-learn |
+
+: 兩筆示範資料 {#tbl-data}
+
+# 使用這個 Skill 的步驟
+
+## 安裝與對話使用
+
+將 `tree-based-models/` 資料夾放進 Claude 的 skills 目錄（或在 Skill 設定中上傳 zip）。之後在對話中提到 EDA、遺失值處理、決策樹／隨機森林／梯度提升等需求時，Claude 會讀取 `SKILL.md` 並依流程進行。
+
+| 你可以這樣說 | Claude 會做的事 |
+|----------|--------------|
+| 「幫我對這份 CSV 做 EDA，目標是 Y」 | 執行 `eda_pipeline.py`，交付報告並解說 |
+| 「這個欄位有很多遺失，要怎麼補？」 | 依機制診斷與插補比較給建議 |
+| 「demo 一下這個 skill」 | 分別跑房價與鳶尾花，各自比較模型 |
+| 上傳新資料：「目標欄位是 Y，幫我分析並建模」 | 確認目標與欄位意義後跑完整流程 |
+
+: 常見的使用方式 {#tbl-usage}
+
+## 自己執行
+
+```bash
+pip install scikit-learn pandas numpy scipy matplotlib openpyxl
+
+python scripts/eda_pipeline.py assets/regression_house_price.csv --target price_wan
+python scripts/eda_pipeline.py assets/classification_iris.csv   --target species
+python scripts/eda_pipeline.py my_data.csv --target y --dict my_data_dictionary.csv
+```
+
+| 參數 | 說明 |
+|---|---|
+| `--target` | 目標欄位（必填） |
+| `--task` | `auto`（預設）/ `classification` / `regression` |
+| `--dict` | 欄位說明檔；未指定時自動找 `<檔名>_dictionary.csv` |
+| `--drop` / `--out` | 額外排除的欄位／輸出資料夾 |
+| `--fast` / `--no-grid` | 跳過 MICE-ExtraTrees／不做 GridSearchCV（較快） |
+
+: `eda_pipeline.py` 參數 {#tbl-args}
+
+輸出 `report.html`、`descriptive_stats.xlsx`、`figures/`、`report.txt`、`summary.json`；執行時間鳶尾花約 1 分鐘、房價約 2.5 分鐘。
+
+
+# 示範結果
+
+::: {.panel-tabset}
+
+## 迴歸：房價（有遺失）
+
+**任務判斷**：`price_wan` 有 1,394 種不同數值 → 迴歸。
+
+![房價特徵分佈：連續變數為直方圖（虛線為平均數），房間數、衛浴數、車位數為長條圖](figures/reg_02_numeric_hist.png){#fig-reg-hist width=95%}
+
+**遺失值**：4 個欄位遺失（管理費 15.8%、屋齡 12.6%、捷運距離 5.7%、樓層 4.7%），整列刪除會丟掉 35.1% 的資料；Little 檢定 p ≈ 9e-91，拒絕 MCAR。
+
+![遺失矩陣、行（欄位）遺失比例、列（資料筆）遺失比例](figures/reg_08_missing_matrix.png){#fig-reg-miss width=100%}
+
+| 欄位 | 真實機制（產生時設定） | 腳本推測 |
+|---|---|---|
+| floor | MCAR | 符合 MCAR |
+| house_age | MAR（老公寓沒資料） | MAR（或 MNAR）：與總樓層強相關 |
+| dist_mrt_km | MAR（郊區未標示） | MAR（或 MNAR）：與距市中心相關 |
+| mgmt_fee | MNAR（越貴越不寫） | MAR（或 MNAR）：MNAR 無法單靠資料區分 |
+
+: 房價資料的遺失機制診斷 {#tbl-reg-mech}
+
+**插補比較**（5 折 CV RMSE）：整列刪除 227.1 明顯最差；其餘方法介於 197.6–201.4，差距都在 1 個標準誤（約 3.9）內，所以選最簡單的**中位數**。
+
+![插補方法對下游模型的影響（橘色為選用）](figures/reg_12_impute_cv.png){#fig-reg-imp width=75%}
+
+| 模型 | 最佳參數 | CV RMSE | 測試 RMSE | 測試 R² | 測試 MAPE |
+|---|---|---|---|---|---|
+| Decision Tree | max_depth=12、min_samples_leaf=10 | 276 | 274 | 0.78 | 18.1% |
+| Random Forest | max_features=1.0、min_samples_leaf=1 | 217 | 217 | 0.86 | 14.4% |
+| Gradient Boosting | n_estimators=400、learning_rate=0.05、max_depth=3 | **195** | **191** | **0.89** | **12.0%** |
+
+: 房價資料的模型比較（單位：萬元） {#tbl-reg-model}
+
+![模型比較：藍為 CV RMSE（誤差棒為標準差），橘為測試 RMSE](figures/reg_16_model_compare.png){#fig-reg-model width=80%}
+
+![最佳模型（Gradient Boosting）的預測 vs 實際與殘差圖](figures/reg_17_pred_resid.png){#fig-reg-resid width=90%}
+
+## 分類：鳶尾花（無遺失）
+
+**任務判斷**：`species` 是文字、3 種值 → 多類別分類。**遺失值**：無 → 跳過。
+
+![鳶尾花 4 個特徵的分佈（虛線為平均數）](figures/clf_02_numeric_hist.png){#fig-clf-hist width=95%}
+
+![各特徵與品種的關係：花瓣長、寬最能區分品種](figures/clf_06_feature_vs_target.png){#fig-clf-rel width=95%}
+
+**資料切分**：stratified 75/25，訓練 112 筆（38 / 37 / 37）、測試 38 筆（12 / 13 / 13）。
+
+![切分示意與各類別在訓練／測試的筆數](figures/clf_11_split.png){#fig-clf-split width=95%}
+
+| 模型 | 最佳參數 | CV Accuracy | 測試 Accuracy | 測試 Macro-F1 |
+|---|---|---|---|---|
+| Decision Tree | max_depth=3、min_samples_leaf=1 | 0.955 | 0.895 | 0.897 |
+| Random Forest | max_features=sqrt、min_samples_leaf=1 | **0.964** | 0.895 | 0.897 |
+| Gradient Boosting | n_estimators=100、learning_rate=0.05、max_depth=2 | 0.956 | **0.921** | **0.923** |
+
+: 鳶尾花的模型比較 {#tbl-clf-model}
+
+![最佳模型（依 CV 為 Random Forest）的混淆矩陣：錯誤都發生在 versicolor 與 virginica 之間](figures/clf_17_roc_cm.png){#fig-clf-cm width=55%}
+
+測試集只有 38 筆，猜錯 1 筆 Accuracy 就差 0.026，三個模型不分軒輊；此時可解釋的淺層決策樹就很夠用。
+
+:::
+
+## 兩筆結果的比較
+
+| | 迴歸：房價 | 分類：鳶尾花 |
+|---|---|---|
+| 遺失值 | 有 → 診斷 + 插補（選中位數） | 無 → 跳過 |
+| 切分 | 隨機 75/25 + KFold(5) | stratified 75/25 + StratifiedKFold(5) |
+| 最佳模型 | Gradient Boosting（RMSE 191、R² 0.89） | 三模型差異在 1 筆之內 |
+| 解讀 | 資料量足夠，集成模型明顯優於單棵樹 | 資料小又容易分，淺樹即足夠 |
+
+: 兩筆示範結果比較 {#tbl-compare}
+
+# 補充：分析其他資料（範例）
+
+為驗證 Skill 能套用到新資料，使用一筆從未用過、且**未附欄位說明檔**的資料：威斯康辛乳癌診斷資料（Wolberg et al., 1995；569 筆、30 個數值特徵，目標 `diagnosis`：benign 357、malignant 212）。
+
+```bash
+python scripts/eda_pipeline.py breast_cancer_diagnosis.csv --target diagnosis
+```
+
+Skill 自動判斷為**二元分類**（改用 AUC、PR-AUC、F1），以 malignant 為正類；無遺失 → 跳過插補；並指出 40 對高度相關特徵（如半徑、周長、面積）。
+
+| 模型（GridSearchCV 最佳參數） | CV AUC | 測試 AUC | 測試 F1 | 測試 Accuracy |
+|---|---|---|---|---|
+| Decision Tree（max_depth=4、min_samples_leaf=20） | 0.967 | 0.969 | 0.830 | 0.888 |
+| Random Forest（max_features=sqrt、min_samples_leaf=1） | 0.988 | 0.996 | 0.940 | 0.958 |
+| Gradient Boosting（n_estimators=300、learning_rate=0.1、max_depth=4） | **0.992** | **0.998** | **0.950** | **0.965** |
+
+: 未看過的資料（乳癌診斷，測試集 143 筆）的模型比較 {#tbl-unseen}
+
+![ROC 曲線與最佳模型混淆矩陣：143 筆測試資料中，5 筆惡性被判為良性，良性全部判對](figures/unseen_17_roc_cm.png){#fig-unseen width=90%}
+
+::: {.callout-tip}
+附上欄位說明檔（`<檔名>_dictionary.csv`）可讓報告帶出中文說明與單位；沒有時 Claude 會先詢問欄位意義，或依欄位名稱推測並標明。
+:::
+
+# 協作說明與 Skill 特點
+
+## 協作說明
+
+此 Skill 由 Claude 協作完成並逐步修正，主要方向：
+
+1. **補上建模前流程**：加入分類與迴歸 demo 資料、EDA、遺失值診斷與插補，並輸出統計報表與圖。
+2. **調整流程順序**：先介紹資料與變數再判斷任務類型；先檢查有無遺失，沒有就跳過；加入資料切分說明。
+3. **讓報告更清楚**：說明預測目標與變數；離散變數用長條圖；遺失比例分行與列；交代各模型參數與調參方式。
+4. **精簡模型與文件**：聚焦三個樹模型，所有文件附上參考資料與資料來源。
+
+## 特點與限制
+
+**特點**
+
+- **固定且完整的流程**：自動完成並輸出報告，適用於任何表格型 CSV。
+- **三個模型互補**：Decision Tree 可解釋；Random Forest 少調參就穩定；Gradient Boosting 調參後準確度通常最高。
+- **評估方式正確**：插補與調參都在 Pipeline 內、只用訓練集 CV；測試集只評估一次；重要度採用測試集置換重要度。
+
+**限制**
+
+- 僅適用於上述三種樹模型，且只適合表格資料（影像、文字等應改用深度學習）。
+- GridSearchCV 會窮舉參數組合，資料大或特徵多時耗時明顯增加。
+
+# 參考資料 {.unnumbered}
+
+**方法與理論**
+
+- Breiman, L., Friedman, J. H., Olshen, R. A., & Stone, C. J. (1984). *Classification and Regression Trees*. Wadsworth.
+- Breiman, L. (1996). Bagging predictors. *Machine Learning*, 24(2), 123–140.
+- Breiman, L. (2001). Random forests. *Machine Learning*, 45(1), 5–32.
+- Friedman, J. H. (2001). Greedy function approximation: A gradient boosting machine. *The Annals of Statistics*, 29(5), 1189–1232.
+- Friedman, J. H. (2002). Stochastic gradient boosting. *Computational Statistics & Data Analysis*, 38(4), 367–378.
+- Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning* (2nd ed.). Springer.
+- Rubin, D. B. (1976). Inference and missing data. *Biometrika*, 63(3), 581–592.
+- Little, R. J. A. (1988). A test of missing completely at random for multivariate data with missing values. *Journal of the American Statistical Association*, 83(404), 1198–1202.
+- Little, R. J. A., & Rubin, D. B. (2019). *Statistical Analysis with Missing Data* (3rd ed.). Wiley.
+- van Buuren, S., & Groothuis-Oudshoorn, K. (2011). mice: Multivariate imputation by chained equations in R. *Journal of Statistical Software*, 45(3), 1–67.
+- Troyanskaya, O., et al. (2001). Missing value estimation methods for DNA microarrays. *Bioinformatics*, 17(6), 520–525.
+- Stekhoven, D. J., & Bühlmann, P. (2012). MissForest—non-parametric missing value imputation for mixed-type data. *Bioinformatics*, 28(1), 112–118.
+- Strobl, C., Boulesteix, A.-L., Zeileis, A., & Hothorn, T. (2007). Bias in random forest variable importance measures. *BMC Bioinformatics*, 8, 25.
+- Kohavi, R. (1995). A study of cross-validation and bootstrap for accuracy estimation and model selection. *Proceedings of IJCAI-95*, 1137–1143.
+- Pedregosa, F., et al. (2011). Scikit-learn: Machine learning in Python. *Journal of Machine Learning Research*, 12, 2825–2830.
+
+**資料來源**
+
+- Fisher, R. A. (1936). The use of multiple measurements in taxonomic problems. *Annals of Eugenics*, 7(2), 179–188.（鳶尾花資料；取自 scikit-learn `load_iris()`）
+- 房價資料：由 `scripts/make_demo_data.py` 以固定亂數種子（seed = 11）產生的模擬資料。
+- Wolberg, W., Mangasarian, O., Street, N., & Street, W. (1995). *Breast Cancer Wisconsin (Diagnostic)* [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5DW2B（取自 scikit-learn `load_breast_cancer()`）
