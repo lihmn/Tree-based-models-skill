@@ -60,7 +60,7 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
 │   ├── tree_based_models_skill_report.html  # 報告輸出（可直接以瀏覽器開啟）
 │   └── figures/                             # 報告使用的圖檔
 ├── breast_cancer_diagnosis.csv              # 未看過資料範例：乳癌診斷資料
-├── 未看過資料_乳癌診斷_report.html            # 乳癌診斷資料的分析報告
+├── 未看過資料_乳癌診斷_report.html           # 乳癌診斷資料的分析報告
 └── 未看過資料_乳癌診斷_統計表.xlsx            # 乳癌診斷資料的統計表
 ```
  
