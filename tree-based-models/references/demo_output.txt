@@ -1,0 +1,65 @@
+資料: 178 筆, 14 個特徵（含純雜訊欄位 _noise）, 類別: ['cultivar_1', 'cultivar_2', 'cultivar_3']
+訓練 133 / 測試 45（stratified）；評估指標: Accuracy
+
+=== 模型比較（train 與 test 差距越大 = 越過擬合） ===
+                         train_Accuracy  cv_Accuracy  test_Accuracy  test_macroF1
+Decision Tree (不限深度)              1.000        0.917          0.911         0.916
+Decision Tree (depth=3)           0.992        0.925          0.956         0.956
+Random Forest                     1.000        0.985          1.000         1.000
+Gradient Boosting                 1.000        0.970          0.956         0.956
+
+=== 淺層決策樹的可讀規則 (depth=3) ===
+|--- color_intensity <= 3.82
+|   |--- ash <= 3.00
+|   |   |--- od280_od315 <= 3.73
+|   |   |   |--- class: 1
+|   |   |--- od280_od315 >  3.73
+|   |   |   |--- class: 0
+|   |--- ash >  3.00
+|   |   |--- class: 0
+|--- color_intensity >  3.82
+|   |--- flavanoids <= 1.58
+|   |   |--- alcalinity_of_ash <= 17.65
+|   |   |   |--- class: 1
+|   |   |--- alcalinity_of_ash >  17.65
+|   |   |   |--- class: 2
+|   |--- flavanoids >  1.58
+|   |   |--- proline <= 724.50
+|   |   |   |--- class: 1
+|   |   |--- proline >  724.50
+|   |   |   |--- class: 0
+
+=== 決策樹深度 vs 過擬合（bias-variance） ===
+max_depth  train_Accuracy  cv_Accuracy  test_Accuracy  n_leaves
+        1           0.662        0.639          0.600         2
+        2           0.940        0.887          0.867         4
+        3           0.992        0.925          0.956         7
+        4           1.000        0.917          0.911         8
+        5           1.000        0.917          0.911         8
+        6           1.000        0.917          0.911         8
+        8           1.000        0.917          0.911         8
+     None           1.000        0.917          0.911         8 
+
+=== Random Forest OOB accuracy = 0.977（測試 accuracy 1.000；OOB 免額外驗證集）
+
+=== 特徵重要度：impurity(MDI) vs permutation（在測試集） ===
+                      RF_MDI  RF_permutation_Accuracy_drop
+color_intensity       0.1796                        0.0511
+proline               0.1619                        0.0567
+flavanoids            0.1350                        0.0178
+alcohol               0.1208                        0.0156
+od280_od315           0.1017                        0.0000
+hue                   0.0929                        0.0233
+total_phenols         0.0450                        0.0000
+malic_acid            0.0404                        0.0000
+magnesium             0.0341                        0.0100
+proanthocyanins       0.0284                        0.0000
+alcalinity_of_ash     0.0268                        0.0000
+ash                   0.0135                        0.0000
+nonflavanoid_phenols  0.0134                        0.0000
+_noise                0.0064                        0.0000
+
+_noise -> MDI 0.0064, permutation 0.0000（純雜訊欄位；permutation 應接近 0）
+
+=== Gradient Boosting early stopping（用驗證集自動決定樹的數量） ===
+最佳樹數 = 289（上限 2000），測試 Accuracy = 1.000

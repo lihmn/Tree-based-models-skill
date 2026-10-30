@@ -1,0 +1,16 @@
+﻿欄位,說明,單位,角色
+__dataset__,UCI 葡萄酒資料集（Forina et al.）：178 支產自義大利同一產區、由 3 個葡萄品種釀成的葡萄酒，依 13 項化學分析結果預測酒的品種（cultivar_1 / cultivar_2 / cultivar_3 各 59 / 71 / 48 支）。,—,資料集
+alcohol,酒精濃度,%,特徵
+malic_acid,蘋果酸,—,特徵
+ash,灰分,—,特徵
+alcalinity_of_ash,灰分鹼度,—,特徵
+magnesium,鎂,—,特徵
+total_phenols,總酚,—,特徵
+flavanoids,類黃酮,—,特徵
+nonflavanoid_phenols,非類黃酮酚,—,特徵
+proanthocyanins,原花青素,—,特徵
+color_intensity,色澤強度,—,特徵
+hue,色調,—,特徵
+od280_od315,稀釋酒液 OD280/OD315 吸光比（蛋白質含量指標）,—,特徵
+proline,脯胺酸,—,特徵
+cultivar,葡萄品種（預測目標）：cultivar_1 / cultivar_2 / cultivar_3,—,目標

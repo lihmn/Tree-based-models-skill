@@ -1,0 +1,39 @@
+{
+  "csv": "assets/classification_wine.csv",
+  "task": "classification",
+  "target": "cultivar",
+  "rows": 178,
+  "num_cols": [
+    "alcohol",
+    "malic_acid",
+    "ash",
+    "alcalinity_of_ash",
+    "magnesium",
+    "total_phenols",
+    "flavanoids",
+    "nonflavanoid_phenols",
+    "proanthocyanins",
+    "color_intensity",
+    "hue",
+    "od280_od315",
+    "proline"
+  ],
+  "cat_cols": [],
+  "dropped": [],
+  "missing_cols": [],
+  "complete_row_ratio": 1.0,
+  "little_mcar": null,
+  "mechanisms": {},
+  "has_missing": false,
+  "best_imputer": "無（資料無遺失）",
+  "best_model": "Random Forest",
+  "best_model_metrics": {
+    "插補": "無",
+    "CV Accuracy": 0.9852,
+    "CV Accuracy 標準差": 0.0296,
+    "訓練 Accuracy": 1.0,
+    "測試 Accuracy": 1.0,
+    "測試 Macro-F1": 1.0,
+    "測試 AUC(ovr)": 1.0
+  }
+}

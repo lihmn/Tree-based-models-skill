@@ -1,0 +1,91 @@
+=== 1. 資料與變數介紹: assets/classification_wine.csv ===
+178 列 × 14 欄；欄位說明檔: classification_wine_dictionary.csv
+                  欄位                                              說明 單位 角色   變數型態   dtype  遺失數
+             alcohol                                            酒精濃度  % 特徵     數值 float64    0
+          malic_acid                                             蘋果酸  — 特徵     數值 float64    0
+                 ash                                              灰分  — 特徵     數值 float64    0
+   alcalinity_of_ash                                            灰分鹼度  — 特徵     數值 float64    0
+           magnesium                                               鎂  — 特徵     數值 float64    0
+       total_phenols                                              總酚  — 特徵     數值 float64    0
+          flavanoids                                             類黃酮  — 特徵     數值 float64    0
+nonflavanoid_phenols                                           非類黃酮酚  — 特徵     數值 float64    0
+     proanthocyanins                                            原花青素  — 特徵     數值 float64    0
+     color_intensity                                            色澤強度  — 特徵     數值 float64    0
+                 hue                                              色調  — 特徵     數值 float64    0
+         od280_od315                   稀釋酒液 OD280/OD315 吸光比（蛋白質含量指標）  — 特徵     數值 float64    0
+             proline                                             脯胺酸  — 特徵     數值 float64    0
+            cultivar 葡萄品種（預測目標）：cultivar_1 / cultivar_2 / cultivar_3  — 目標 類別（標籤）     str    0
+
+=== 2. 任務類型判斷 ===
+  檢查項目                                 結果
+  目標欄位                           cultivar
+ dtype                                str
+ 是否為數值                                  否
+是否全為整數                                  否
+ 不同值個數                                  3
+ 不同值佔比                              1.69%
+   範例值 cultivar_1, cultivar_2, cultivar_3
+    判斷                      分類：多類別分類（3 類）
+→ 分類（多類別分類（3 類））：目標是文字／布林值，代表「類別」而非數量
+
+=== 3. 敘述性統計 ===
+                       個數  遺失%      平均數      標準差     最小值       Q1      中位數       Q3      最大值      IQR  變異係數CV     偏態  峰態(超額)  離群值數(1.5IQR)
+欄位                                                                                                                                        
+alcohol               178  0.0   13.001    0.812   11.03   12.362   13.050   13.678    14.83    1.315   0.062 -0.051  -0.862             0
+malic_acid            178  0.0    2.336    1.117    0.74    1.602    1.865    3.082     5.80    1.480   0.478  1.031   0.257             3
+ash                   178  0.0    2.367    0.274    1.36    2.210    2.360    2.558     3.23    0.348   0.116 -0.175   1.079             3
+alcalinity_of_ash     178  0.0   19.495    3.340   10.60   17.200   19.500   21.500    30.00    4.300   0.171  0.211   0.441             4
+magnesium             178  0.0   99.742   14.282   70.00   88.000   98.000  107.000   162.00   19.000   0.143  1.089   2.013             4
+total_phenols         178  0.0    2.295    0.626    0.98    1.742    2.355    2.800     3.88    1.057   0.273  0.086  -0.846             0
+flavanoids            178  0.0    2.029    0.999    0.34    1.205    2.135    2.875     5.08    1.670   0.492  0.025  -0.889             0
+nonflavanoid_phenols  178  0.0    0.362    0.124    0.13    0.270    0.340    0.438     0.66    0.167   0.344  0.446  -0.653             0
+proanthocyanins       178  0.0    1.591    0.572    0.41    1.250    1.555    1.950     3.58    0.700   0.360  0.513   0.506             2
+color_intensity       178  0.0    5.058    2.318    1.28    3.220    4.690    6.200    13.00    2.980   0.458  0.861   0.337             4
+hue                   178  0.0    0.957    0.229    0.48    0.782    0.965    1.120     1.71    0.338   0.239  0.021  -0.368             1
+od280_od315           178  0.0    2.612    0.710    1.27    1.938    2.780    3.170     4.00    1.232   0.272 -0.305  -1.090             0
+proline               178  0.0  746.893  314.907  278.00  500.500  673.500  985.000  1680.00  484.500   0.422  0.761  -0.275             0
+      欄位  個數  遺失%  類別數         眾數  眾數佔比%       最少類別  最少類別佔比%
+cultivar 178  0.0    3 cultivar_2  39.89 cultivar_3    26.97
+
+=== 4. 遺失值檢查 ===
+     項目               結果
+  特徵欄位數               13
+   資料筆數              178
+    總格數            2,314
+   遺失格數         0（0.00%）
+有遺失的欄位數                0
+  完整列比例           100.0%
+     判斷 無遺失 → 跳過遺失值診斷與處理
+完整列（所有特徵都沒有遺失）: 178/178（100.0%）
+
+=== 5. 資料切分 ===
+        類別  全部筆數  訓練筆數  測試筆數  訓練佔該類%  測試佔該類%  訓練集內佔比%  測試集內佔比%
+cultivar_1    59    44    15    74.6    25.4     33.1     33.3
+cultivar_2    71    53    18    74.6    25.4     39.8     40.0
+cultivar_3    48    36    12    75.0    25.0     27.1     26.7
+        合計   178   133    45    74.7    25.3    100.0    100.0
+ 折  訓練筆數  驗證筆數  驗證折 cultivar_1 筆數  驗證折 cultivar_2 筆數  驗證折 cultivar_3 筆數
+ 1   106    27                  9                 11                  7
+ 2   106    27                  9                 11                  7
+ 3   106    27                  9                 10                  8
+ 4   107    26                  9                 10                  7
+ 5   107    26                  8                 11                  7
+
+=== 6. 遺失值處理：資料無遺失，略過 ===
+
+=== 7. 模型比較（插補 = 無（資料無遺失）） ===
+  Decision Tree            CV Accuracy 0.9103±0.0550｜GridSearchCV（5 折 CV，24 組 × 5 折 = 120 次訓練）｜最佳參數 max_depth=3、min_samples_leaf=1
+  Random Forest            CV Accuracy 0.9852±0.0296｜GridSearchCV（5 折 CV，9 組 × 5 折 = 45 次訓練）｜最佳參數 max_features=sqrt、min_samples_leaf=1
+  Gradient Boosting        CV Accuracy 0.9778±0.0296｜GridSearchCV（5 折 CV，12 組 × 5 折 = 60 次訓練）｜最佳參數 learning_rate=0.1、max_depth=2、n_estimators=300
+               模型                                           最佳參數                                            固定參數
+    Decision Tree                 max_depth=3、min_samples_leaf=1                  criterion=gini、random_state=42
+    Random Forest           max_features=sqrt、min_samples_leaf=1 n_estimators=300、bootstrap=True、random_state=42
+Gradient Boosting learning_rate=0.1、max_depth=2、n_estimators=300                   subsample=0.8、random_state=42
+               模型  CV Accuracy  CV Accuracy 標準差  訓練 Accuracy  測試 Accuracy  測試 Macro-F1  測試 AUC(ovr)
+    Decision Tree       0.9103           0.0550       0.9925       0.9556       0.9565       0.9584
+    Random Forest       0.9852           0.0296       1.0000       1.0000       1.0000       1.0000
+Gradient Boosting       0.9778           0.0296       1.0000       0.9778       0.9797       1.0000
+
+總耗時 63.4 秒
+
+輸出 → eda_classification_wine/report.html、descriptive_stats.xlsx、figures/（9 張圖）
