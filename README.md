@@ -27,6 +27,7 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
 
 ```
 ├── README.md
+├── tree-based-models.zip                    # Skill 本體（上傳到 Claude Skill）
 ├── tree-based-models/                       # Skill 本體（安裝時使用此資料夾）
 │   ├── SKILL.md                             # Skill 主說明（Claude 讀取的入口）
 │   ├── requirements.txt                     # 套件版本（重現示範結果用）
@@ -61,7 +62,7 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
     └── figures/                             # 報告使用的圖檔
 ```
  
-- **`tree-based-models/`**：Skill 本體，安裝到 Claude 時使用此資料夾。
+- **`tree-based-models.zip`**：Skill 本體，安裝到 Claude 時使用此資料夾。
 - **`materials/`**：完整說明報告，介紹方法、流程、檔案用途與示範結果；`.qmd` 可用 Quarto 重新產生 `.html`。
 
 ## 程式說明與執行流程
