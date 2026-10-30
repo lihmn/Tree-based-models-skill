@@ -20,7 +20,7 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
 | | 二元分類 | 多類別分類 | 迴歸 |
 |---|---|---|---|
 | 調參／選模型指標 | AUC | Accuracy | RMSE |
-| 其他報告指標 | PR-AUC、F1、ROC、混淆矩陣 | Macro-F1、AUC(ovr)、混淆矩陣 | MAE、R²、MAPE、殘差圖 |
+| 其他報告指標 | PR-AUC、F1、ROC、混淆矩陣 | Macro-F1、AUC、混淆矩陣 | MAE、R²、MAPE、殘差圖 |
 | 切分方式 | Stratified + StratifiedKFold |  Stratified + StratifiedKFold | KFold |
 
 ## 檔案結構
@@ -72,7 +72,7 @@ Claude Skill：針對表格型資料（CSV），完成「資料與變數介紹 �
 | 程式 | 用途 | 輸入 | 輸出 |
 |---|---|---|---|
 | **`eda_pipeline.py`** | 主程式：EDA、遺失值處理、樹模型建模與報告輸出 | 任何表格 CSV + `--target` | `eda_<檔名>/` 資料夾 |
-| `make_demo_data.py` | 產生兩筆 demo 資料（房價刻意放入 MCAR / MAR / MNAR 遺失） | 無（固定亂數種子） | `assets/` 的資料與欄位說明檔 |
+| `make_demo_data.py` | 產生兩筆 demo 資料（遺失） | 無（固定亂數種子） | `assets/` 的資料與欄位說明檔 |
 | `demo_tree_models.py` | 示範過擬合、淺樹規則、OOB、MDI vs 置換重要度、early stopping | 分類 CSV | 主控台文字輸出 |
 
 ```
@@ -147,5 +147,5 @@ python scripts/eda_pipeline.py my_data.csv --target y --dict my_data_dictionary.
 
 **資料來源**：
 
-- 葡萄酒資料：Aeberhard, S., & Forina, M. (1992). *Wine* [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5PC7J（取自 scikit-learn `load_wine()`）。
+- 葡萄酒資料：Aeberhard, S., & Forina, M. (1992). *Wine* [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5PC7J （取自 scikit-learn `load_wine()`）。
 - 房價資料為 `make_demo_data.py` 以 seed = 11 產生的模擬資料。
